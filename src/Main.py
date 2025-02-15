@@ -26,12 +26,16 @@ subTeamsChildren = []
 matchSubbuttons = []
 matchSublables = []
 lastClickedMatch = None
+lastClickedSubMatch = None
+subMatchesChildren = []
 
 teamGraphSubbuttons = []
 teamGraphSublables = []
 lastClickedteamGraph = None
 lastTeamGraphFrame = None
 
+teamBorder = tk.PhotoImage(file="Sprites/TeamBorder.png")
+teamBorderHighlighted = tk.PhotoImage(file="Sprites/TeamBorderHighlighted.png")
 numberBorder = tk.PhotoImage(file="Sprites/NumberBorder.png")
 numberBorderHighlighted = tk.PhotoImage(file="Sprites/NumberBorderHighlighted.png")
 backgroundPage = tk.PhotoImage(file="Sprites/Background.png")
@@ -81,7 +85,11 @@ def color_check():
 def on_team_subbutton_click(subbutton, file):
     scoutingPath = os.path.join(os.environ["USERPROFILE"], "OneDrive", "Documents", "ScoutingData")
     scoutingFiles = os.listdir(scoutingPath)
+    print(scoutingFiles)
     global lastClickedTeam
+
+    matchesLabel = tk.Label(window, text="Matches", font=("Scrabblefont", 40, "bold"))
+    matchesLabel.place(x=700, y=175)
 
     # Reset previously clicked team button if exists
     if lastClickedTeam is not None and isinstance(lastClickedTeam, tk.Button):
@@ -119,11 +127,10 @@ def on_team_subbutton_click(subbutton, file):
         # Pass teamsubsubbutton and teamsubsublabel to the lambda function
         teamsubsubbutton.config(command=lambda btn=teamsubsubbutton, label=teamsubsublabel, teamNumber=file, matchNumber=Match: team_on_subsubbutton_click(subsubbutton=btn, subsublabel=label, file=teamNumber, Match=matchNumber))
         teamsubsubbutton.place(x=x, y=y)
-        teamsubsublabel.bind("<Button-1>", lambda event, btn=teamsubsubbutton, label=teamsubsublabel, 
-                      teamNumber=file, matchNumber=Match: team_on_subsubbutton_click(
-                          subsubbutton=btn, subsublabel=label, file=teamNumber, Match=matchNumber))
+        teamsubsublabel.bind("<Button-1>", lambda event, btn=teamsubsubbutton, label=teamsubsublabel, teamNumber=file, matchNumber=Match: team_on_subsubbutton_click(subsubbutton=btn, subsublabel=label, file=teamNumber, Match=matchNumber))
         subTeamsChildren.append(teamsubsubbutton)
         subTeamsChildren.append(teamsubsublabel)
+    subTeamsChildren.append(matchesLabel)
 
 def team_on_subsubbutton_click(subsubbutton, subsublabel, Match, file):
     scoutingPath = os.path.join(os.environ["USERPROFILE"], "OneDrive", "Documents", "ScoutingData")
@@ -154,12 +161,63 @@ def team_on_subsubbutton_click(subsubbutton, subsublabel, Match, file):
         subTeamsChildren.append(theFileShower)
         print(subTeamsChildren)
 
-def on_match_subbutton_click(subbutton):
-    global lastClickedTeam
-    if lastClickedTeam is not None:
-        lastClickedTeam.config(image=genBorder)
+def on_match_subbutton_click(subbutton, file):
+    scoutingPath = os.path.join(os.environ["USERPROFILE"], "OneDrive", "Documents", "ScoutingData")
+    scoutingFiles = os.listdir(scoutingPath)
+    global lastClickedMatch
+    if lastClickedMatch is not None:
+        lastClickedMatch.config(image=genBorder)
     subbutton.config(image=genBorderHighlighted)
-    lastClickedTeam = subbutton
+    lastClickedMatch = subbutton
+
+    for widget in subMatchesChildren:
+        widget.destroy()
+    subMatchesChildren.clear()
+
+    teamsLabel = tk.Label(window, text="Teams", font=("Scrabblefont", 40, "bold"))
+    teamsLabel.place(x=1000, y=175)
+
+    pattern = re.compile(rf"Match\({file}\)")
+    matching_files = [file2 for file2 in scoutingFiles if pattern.search(file2)]
+
+    x = 850
+    y = 100
+    for teamFile in matching_files:
+        y += 150
+        teamFile = teamFile.split(')')[0].replace('Team(', '')
+        subsubMatchButton = tk.Button(window, image=teamBorder, width=200, height=120)
+        subsubMatchButton.place(x=x, y=y)
+        subsubMatchLabel = tk.Label(window, text=teamFile, font=("Scrabblefont", 20, "bold"), bg="#F5F1ED")
+        subsubMatchLabel.place(x=(x + 66), y=(y + 45))
+        subsubMatchButton.config(command=lambda ssb=subsubMatchButton, tf=teamFile, f=file: match_on_subsubbutton_click(subsubbutton=ssb, teamFile=tf, matchFile=f))
+        subsubMatchLabel.bind("<Button-1>", lambda event, ssb=subsubMatchButton, tf=teamFile, f=file: match_on_subsubbutton_click(subsubbutton=ssb, teamFile=tf, matchFile=f))
+        subMatchesChildren.append(subsubMatchButton)
+        subMatchesChildren.append(subsubMatchLabel)
+    subMatchesChildren.append(teamsLabel)
+
+def match_on_subsubbutton_click(subsubbutton, teamFile, matchFile):
+    scoutingPath = os.path.join(os.environ["USERPROFILE"], "OneDrive", "Documents", "ScoutingData")
+    global lastClickedSubMatch
+
+    # Reset previously clicked sub-team button and label background
+    if lastClickedSubMatch is not None and isinstance(lastClickedSubMatch, tk.Button):
+        try:
+            lastClickedSubMatch.config(image=teamBorder)
+        except Exception:
+            pass
+
+    # Update last clicked sub-team and sublabel
+    lastClickedSubMatch = subsubbutton
+    lastClickedSubMatch.config(image=teamBorderHighlighted)
+
+    theJsonFileToOpen = os.path.join(scoutingPath, f'Team({teamFile})Match({matchFile})Text.json')
+    with open(theJsonFileToOpen, "r") as theJsonFile:
+        content = theJsonFile.read()
+        content = content.replace(',', '\n')
+        theFileShower = tk.Label(window, text=content, font=("Scrabblefont", 20, "bold"), bg="#F1EDE7")
+        theFileShower.place(x=1300, y=200)
+        subMatchesChildren.append(theFileShower)
+
 '''
 def on_defensive_skill_click(file2, frame):
     scoutingPath = os.path.join(os.environ["USERPROFILE"], "OneDrive", "Documents", "ScoutingData")
@@ -350,6 +408,9 @@ def on_main_button_click(button):
         for widget in subTeamsChildren:
             widget.destroy()
         subTeamsChildren.clear()
+        for widget in subMatchesChildren:
+            widget.destroy()
+        subMatchesChildren.clear()
         # Remove match subbuttons if any exist
         if matchesOn:
             if len(matchSubbuttons) > 0:
@@ -361,9 +422,6 @@ def on_main_button_click(button):
             matchSubbuttons.clear()
             matchSublables.clear()
             lastClickedMatch = None
-
-        matchesLabel = tk.Label(window, text="Matches", font=("Scrabblefont", 40, "bold"))
-        matchesLabel.place(x=700, y=175)
         
         # Create team subbuttons
         y = 100
@@ -394,6 +452,9 @@ def on_main_button_click(button):
         for widget in subTeamsChildren:
             widget.destroy()
         subTeamsChildren.clear()
+        for widget in subMatchesChildren:
+            widget.destroy()
+        subMatchesChildren.clear()
         # Remove team subbuttons if any exist
         if teamsOn:
             if len(teamSubbuttons) > 0:
@@ -418,12 +479,12 @@ def on_main_button_click(button):
             result = "Match " + file
 
             subbutton = tk.Button(window, image=genBorder, width=300, height=140, text=result, font=("Scrabblefont", 22, "bold"))
-            subbutton.config(command=lambda b=subbutton: on_match_subbutton_click(b))
+            subbutton.config(command=lambda b=subbutton, f=file: on_match_subbutton_click(subbutton=b, file=f))
             subbutton.place(x=x, y=y)
 
             buttonText = tk.Label(window, text=result, font=("Scrabblefont", 22, "bold"), bg="white")
             buttonText.place(x=(x + 80), y=(y + 55))
-            buttonText.bind("<Button-1>", lambda e, b=subbutton: on_match_subbutton_click(b))
+            buttonText.bind("<Button-1>", lambda e, b=subbutton, f=file: on_match_subbutton_click(subbutton=b, file=f))
 
             matchSubbuttons.append(subbutton)
             matchSublables.append(buttonText)
@@ -433,6 +494,9 @@ def on_main_button_click(button):
         for widget in subTeamsChildren:
             widget.destroy()
         subTeamsChildren.clear()
+        for widget in subMatchesChildren:
+            widget.destroy()
+        subMatchesChildren.clear()
         # Remove match subbuttons if any exist
         if matchesOn:
             if len(matchSubbuttons) > 0:
@@ -452,6 +516,9 @@ def on_main_button_click(button):
         for widget in subTeamsChildren:
             widget.destroy()
         subTeamsChildren.clear()
+        for widget in subMatchesChildren:
+            widget.destroy()
+        subMatchesChildren.clear()
         # Cleanup any other subbuttons if needed
         if matchesOn:
             if len(matchSubbuttons) > 0:
