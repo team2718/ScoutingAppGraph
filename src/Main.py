@@ -317,6 +317,7 @@ def on_offensive_skill_click(file2, frame):
     ax = fig.add_subplot(111)
 
     ax.bar(teamSpecificMatches, teamOffensiveMatchScores, color='red')
+    ax.plot(teamSpecificMatches, teamOffensiveMatchScores, color='blue', marker='o', linestyle='-', label="Avg Score")
 
     ax.set_xlabel('Matches')
     ax.set_ylabel('Total Score')
