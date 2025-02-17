@@ -156,7 +156,7 @@ def team_on_subsubbutton_click(subsubbutton, subsublabel, Match, file):
     with open(theJsonFileToOpen, "r") as theJsonFile:
         content = theJsonFile.read()
         content = content.replace(',', '\n')
-        theFileShower = tk.Label(window, text=content, font=("Scrabblefont", 20, "bold"), bg="#F1EDE7")
+        theFileShower = tk.Label(window, text=content, font=("Arial", 17, "bold"), bg="#F1EDE7")
         theFileShower.place(x=1200, y=200)
         subTeamsChildren.append(theFileShower)
         print(subTeamsChildren)
@@ -214,7 +214,7 @@ def match_on_subsubbutton_click(subsubbutton, teamFile, matchFile):
     with open(theJsonFileToOpen, "r") as theJsonFile:
         content = theJsonFile.read()
         content = content.replace(',', '\n')
-        theFileShower = tk.Label(window, text=content, font=("Scrabblefont", 20, "bold"), bg="#F1EDE7")
+        theFileShower = tk.Label(window, text=content, font=("Arial", 17, "bold"), bg="#F1EDE7")
         theFileShower.place(x=1300, y=200)
         subMatchesChildren.append(theFileShower)
 
@@ -321,6 +321,86 @@ def on_offensive_skill_click(file2, frame):
     ax.set_xlabel('Matches')
     ax.set_ylabel('Total Score')
     ax.set_title(f"Team {file2}'s Offensive Skill")
+
+    canvas = FigureCanvasTkAgg(fig, subframe)
+    canvas.get_tk_widget().place(x=300, y=200, width=1300, height=750)
+    canvas.draw()
+
+def on_ranks_offensive_click(frame):
+    scoutingPath = os.path.join(os.environ["USERPROFILE"], "OneDrive", "Documents", "ScoutingData")
+    scoutingFiles = os.listdir(scoutingPath)
+    teamOffensiveMatchScores = []
+    trueTeamOffensiveMatchScores = []
+
+    subframe = tk.Frame(frame, bg="lightgreen")
+    subframe.place(x=0, y=0, relwidth=1, relheight=1)
+
+    label = tk.Label(subframe, text="Ranked Offensive Skill", font=("Scrabblefont", 72, "bold"), bg="lightgreen")
+    label.pack(pady=20)
+
+    BButton = tk.Button(subframe, image=backButton, width=125, height=125, command=lambda: subframe.destroy())
+    BButton.place(x=1778, y=3)
+
+    unique_teams = set()
+    pattern = re.compile(r"Team\((\d+)\)")
+
+    for file in scoutingFiles:
+        match = pattern.search(file)
+        if match:
+            unique_teams.add(match.group(1))
+
+    unique_teams = list(unique_teams)
+    unique_teams.sort()
+
+    for i in range(len(unique_teams)):
+        teamSpecificMatchFiles = [string for string in scoutingFiles if unique_teams[i] in string]
+        for i in range(len(teamSpecificMatchFiles)):
+            with open(os.path.join(scoutingPath, teamSpecificMatchFiles[i]), 'r') as file:
+                content = json.load(file)
+
+                auto1Number = content["autoL1"]
+                auto2Number = content["autoL2"]
+                auto3Number = content["autoL3"]
+                auto4Number = content["autoL4"]
+
+                teleop1Number = content["teleopL1"]
+                teleop2Number = content["teleopL2"]
+                teleop3Number = content["teleopL3"]
+                teleop4Number = content["teleopL4"]
+
+                auto1Number *= 3
+                auto2Number *= 4
+                auto3Number *= 6
+                auto4Number *= 7
+
+                teleop1Number *= 2
+                teleop2Number *= 3
+                teleop3Number *= 4
+                teleop4Number *= 5
+
+                teamOffensiveMatchScores.append(
+                    auto1Number +
+                    auto2Number +
+                    auto3Number +
+                    auto4Number +
+                    teleop1Number +
+                    teleop2Number +
+                    teleop3Number +
+                    teleop4Number
+                )
+        average = sum(teamOffensiveMatchScores) / len(teamOffensiveMatchScores)
+        teamOffensiveMatchScores.clear()
+        trueTeamOffensiveMatchScores.append(average)
+    print(trueTeamOffensiveMatchScores)
+
+    fig = Figure(figsize=(5, 3), dpi=100)
+    ax = fig.add_subplot(111)
+
+    ax.bar(unique_teams, trueTeamOffensiveMatchScores, color='red')
+
+    ax.set_xlabel('Teams')
+    ax.set_ylabel('Average Offensive Score')
+    ax.set_title(f"Average Teams Offensive Score")
 
     canvas = FigureCanvasTkAgg(fig, subframe)
     canvas.get_tk_widget().place(x=300, y=200, width=1300, height=750)
@@ -509,6 +589,17 @@ def on_main_button_click(button):
             matchSublables.clear()
             lastClickedMatch = None
 
+        frame = tk.Frame(window, bg="lightblue")
+        frame.place(x=0, y=0, relwidth=1, relheight=1)
+
+        label = tk.Label(frame, text="Ranks", font=("Scrabblefont", 72, "bold"), bg="lightblue")
+        label.pack(pady=20)
+
+        BButton = tk.Button(frame, image=backButton, width=125, height=125, command=lambda: frame.destroy())
+        BButton.place(x=1778, y=3)
+
+        OffensiveRanksButton = tk.Button(frame, image=offensiveSkillButton, width=225, height=120, command=lambda: on_ranks_offensive_click(frame=frame))
+        OffensiveRanksButton.pack(pady=20)
         # Cleanup any other subbuttons if needed
 
     # Handle subbutton creation/removal when toggling teamGraphs
